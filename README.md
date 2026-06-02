@@ -57,3 +57,35 @@ CryptaShell does not cut corners on security implementations. It mitigates both 
    ```bash
    git clone [https://github.com/yourusername/crypta_shell.git](https://github.com/arnabau/cryptashell.git)
    cd crypta_shell
+
+2. Install dependencies:
+    ```bash
+    flutter pub get
+
+3. Generate platform icons (Optional, requires flutter_launcher_icons):
+    ```bash
+    flutter pub run flutter_launcher_icons
+
+4. Run the application:
+    ```bash
+    flutter run -d macos  # or your preferred target device
+
+### 🛠️ Tech Stack & Dependencies
+* flutter_bloc & equatable - Presentation Layer
+* get_it - Dependency Injection
+* fpdart - Functional Programming (Either monad)
+* cryptography - Core AES-GCM and PBKDF2 implementation
+* archive - In-memory ZIP containerization
+* desktop_drop & file_picker - Cross-platform file handling
+
+---
+
+Your suggestions or bug reports are welcome. You're also welcome to collaborate on the project.
+
+## Do you like CryptaShell? Do you found it helpful?
+
+I maintain this project in my free time. Any support is very welcome:
+
+<a href="https://buymeacoffee.com/stringsandbits" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" />
+</a>
