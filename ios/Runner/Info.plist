@@ -8,6 +8,25 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Crypta Shell</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeIconFiles</key>
+			<array>
+				<string>AppIcon</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>CryptaShell Encrypted Archive</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.arnaldobaumanis.cryptashell.crypta</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -56,92 +75,32 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-
-	<key>CFBundleDocumentTypes</key>
-<array>
-    <dict>
-        <key>CFBundleTypeName</key>
-        <string>CryptaShell Encrypted File</string>
-        <key>LSHandlerRank</key>
-        <string>Owner</string>
-        <key>LSItemContentTypes</key>
-        <array>
-            <string>com.cryptashell.crypta</string>
-        </array>
-    </dict>
-</array>
-<key>UTExportedTypeDeclarations</key>
-<array>
-    <dict>
-        <key>UTTypeConformsTo</key>
-        <array>
-            <string>public.data</string>
-        </array>
-        <key>UTTypeDescription</key>
-        <string>CryptaShell Encrypted File</string>
-        <key>UTTypeIdentifier</key>
-        <string>com.cryptashell.crypta</string>
-        <key>UTTypeTagSpecification</key>
-        <dict>
-            <key>public.filename-extension</key>
-            <array>
-                <string>crypta</string>
-            </array>
-        </dict>
-    </dict>
-</array>
-
-<key>CFBundleDocumentTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleTypeName</key>
-            <string>CryptaShell Encrypted Archive</string>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>LSHandlerRank</key>
-            <string>Owner</string>
-            <key>LSItemContentTypes</key>
-            <array>
-                <string>com.arnaldobaumanis.cryptashell.crypta</string>
-            </array>
-            <key>CFBundleTypeIconFiles</key>
-            <array>
-                <string>AppIcon</string>
-            </array>
-        </dict>
-    </array>
-
-    <key>UTExportedTypeDeclarations</key>
-    <array>
-        <dict>
-            <key>UTTypeIdentifier</key>
-            <string>com.arnaldobaumanis.cryptashell.crypta</string>
-            <key>UTTypeDescription</key>
-            <string>CryptaShell Archive</string>
-            <key>UTTypeConformsTo</key>
-            <array>
-                <string>public.data</string>
-                <string>public.archive</string>
-            </array>
-            <key>UTTypeTagSpecification</key>
-            <dict>
-                <key>public.filename-extension</key>
-                <array>
-                    <string>crypta</string>
-                </array>
-            </dict>
-        </dict>
-    </array>
-
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.archive</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>CryptaShell Archive</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.arnaldobaumanis.cryptashell.crypta</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>crypta</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>
