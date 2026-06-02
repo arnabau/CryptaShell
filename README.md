@@ -16,6 +16,10 @@ CryptaShell is an offline-first desktop and mobile application designed to secur
 
 ---
 
+| Encrypt (macOS) | Decrypt (macOS) | iPhone 17 |
+| :---: | :---: | :---: |
+| ![Encrypt](assets/images/01.png) | ![Decrypt](assets/images/02.png) | ![iOS](assets/images/03.png) |
+
 ## 🏗️ Technical Architecture
 
 The codebase strictly follows **Clean Architecture** principles, decoupling business rules from UI and external frameworks, ensuring a highly testable and maintainable environment.
