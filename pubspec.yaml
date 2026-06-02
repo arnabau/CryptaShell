@@ -1,0 +1,76 @@
+name: cryptashell
+description: A High-Security Cryptographic File Management System.
+publish_to: "none" # Golden rule for security apps: avoid accidental posting to pub.dev
+version: 1.0.5+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0" # Force the use of modern Dart (Pattern matching, Records)
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- UI / UX & Design (Material 3) ---
+  cupertino_icons: ^1.0.6
+  google_fonts: ^6.2.1 # For a modern, clean and "hacker-chic" typeface (e.g., JetBrains Mono or Roboto Flex)
+  lucide_icons: ^0.257.0 # Minimalist icons, much more elegant than the default standard ones
+
+  # --- State Management & Clean Architecture ---
+  flutter_bloc: ^8.1.5 # The absolute standard for separating logic from view
+  equatable: ^2.0.5 # To compare BLoC states in leak-free memory
+  get_it: ^7.6.7 # Main container for Constructor Injection and DI
+  fpdart: ^1.1.0 # Functional programming. It requires handling security errors with Either<Failure, Success>
+
+  # --- Cryptographic engine ---
+  cryptography: ^2.7.0 # Native AES-256-GCM and PBKDF2. Extremely fast and secure
+
+  # --- File System and Multiplatform ---
+  file_picker: ^8.0.0 # Open Finder (macOS) or Linux/Windows manager natively
+  path_provider: ^2.1.2 # Secure access to local file system paths
+
+  # --- Advanced Processing (Folders and Metadata) ---
+  archive: ^4.0.9 # Crucial: Compress folders into a .zip file in memory BEFORE encrypting them
+  image: ^4.1.7 # Low-level tool for decoding and rewriting images without the EXIF ​​(Metadata) layer
+  desktop_drop: ^0.7.1 # Drag and drop files
+  share_plus: ^12.0.2 # Handles native menus of iOS and Android
+  package_info_plus: ^9.0.1 # get/show app version
+  font_awesome_flutter: ^11.0.0
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.3 # To create mocks in our Domain and Data layer Unit Tests
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.8 # Useful if we decide to auto-generate code later on
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  image_path: "assets/images/app_icon.png" # Global path
+
+  # --- MOBILE ---
+  android: "launcher_icon"
+  ios: true
+
+  # --- DESKTOP AND WEB ---
+  macos:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+  linux:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+  web:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+
+# App icon extension for Windows
+msix:
+  display_name: CryptaShell
+  publisher_display_name: Arnaldo Baumanis
+  file_extension: .crypta

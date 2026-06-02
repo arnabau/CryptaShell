@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-crypta">
+    <comment>CryptaShell Encrypted Archive</comment>
+    <glob pattern="*.crypta"/>
+    <icon name="cryptashell-icon"/> </mime-type>
+</mime-info>
