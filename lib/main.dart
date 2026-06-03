@@ -12,9 +12,22 @@ import 'package:cryptashell/core/di/locator.dart';
 import 'package:cryptashell/features/file_manager/presentation/bloc/file_manager_bloc.dart';
 import 'package:cryptashell/features/file_manager/presentation/screens/file_manager_screen.dart';
 
+import 'package:window_manager/window_manager.dart';
+
 void main(List<String> args) async {
   // Make sure native macOS channels are ready
   WidgetsFlutterBinding.ensureInitialized();
+
+  await windowManager.ensureInitialized();
+  WindowOptions windowOptions = const WindowOptions(
+    title: 'CryptaShell',
+    minimumSize: Size(450, 660),
+    maximumSize: Size(600, 800),
+  );
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
 
   // Initialize dependency bunker
   await initLocator();

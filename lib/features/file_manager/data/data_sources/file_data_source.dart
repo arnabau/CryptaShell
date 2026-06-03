@@ -32,12 +32,21 @@ class FileDataSourceImpl implements FileDataSource {
     try {
       // Tried to decode the image (supports JPG, PNG, GIF, WebP)
       final image = img.decodeImage(fileBytes);
-      if (image == null)
+      if (image == null) {
         return fileBytes; // If it is not a valid image, we return the bytes intact.
+      }
+
+      // Explicitly empty the EXIF ​​container before encoding
+      image.exif.clear();
+
+      // If the library detected data in other text formats (such as XMP), deleted them too
+      if (image.textData != null) {
+        image.textData!.clear();
+      }
 
       // When re-encoding without passing metadata maps, the 'image' library
       // generates a clean binary file containing only the pixel color matrix.
-      return Uint8List.fromList(img.encodeJpg(image, quality: 95));
+      return Uint8List.fromList(img.encodeJpg(image, quality: 100));
     } catch (_) {
       // If it fails or is not a compatible image, the original file is returned for safety.
       return fileBytes;

@@ -12,6 +12,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cryptashell/features/file_manager/presentation/bloc/file_manager_bloc.dart';
 import 'package:cryptashell/features/file_manager/presentation/bloc/file_manager_state.dart';
+import 'package:window_manager/window_manager.dart';
 
 class FileManagerScreen extends StatefulWidget {
   const FileManagerScreen(
@@ -29,9 +30,13 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
   double _strengthValue = 0.0;
   Color _strengthColor = Colors.grey;
 
+  // toggle's options
+  bool _deleteFileAfterProcess = false;
+  bool _removeMetadataAfterProcess = false;
+
   bool _isDragging = false;
 
-  String _appVersion = ''; // app version
+  String _appVersion = '';
 
   @override
   void initState() {
@@ -41,8 +46,15 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
 
   Future<void> _loadAppVersion() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+    if (!mounted) return;
+
     setState(() {
-      _appVersion = '${packageInfo.version}.${packageInfo.buildNumber}';
+      _appVersion = packageInfo.version;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await windowManager.setTitle('CryptaShell - v$_appVersion');
     });
   }
 
@@ -60,9 +72,17 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
     }
 
     if (!mounted) return;
+
     final passwordBytes = Uint8List.fromList(utf8.encode(password));
 
     if (_isEncryptMode) {
+      final hasCrypta = details.files.any((f) => f.path.endsWith('.crypta'));
+
+      if (hasCrypta) {
+        _showError('One or more dropped files are already encrypted');
+        return;
+      }
+
       // 1. Dynamically classify whether they are files or folders
       final List<FileSystemEntity> elements = details.files.map((xFile) {
         return FileSystemEntity.isDirectorySync(xFile.path)
@@ -78,7 +98,8 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
             EncryptRequested(
               elements: elements,
               passwordBytes: passwordBytes,
-              removeMetadata: false,
+              removeMetadata: _removeMetadataAfterProcess,
+              deleteSource: _deleteFileAfterProcess,
               outputPath: outputPath,
             ),
           );
@@ -96,6 +117,7 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
             DecryptRequested(
               archiveFile: archiveFile,
               passwordBytes: passwordBytes,
+              deleteSource: _deleteFileAfterProcess,
               outputDir: outputDir,
             ),
           );
@@ -219,6 +241,14 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
       if (!mounted) return;
 
       if (_isEncryptMode) {
+        final hasCrypta = result.paths
+            .any((path) => path != null && path.endsWith('.crypta'));
+
+        if (hasCrypta) {
+          _showError('One or more selected files are already encrypted.');
+          return;
+        }
+
         final List<FileSystemEntity> elements =
             result.paths.map((p) => File(p!)).toList();
         final parentDir = File(result.paths.first!).parent.path;
@@ -228,12 +258,14 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
               EncryptRequested(
                 elements: elements,
                 passwordBytes: passwordBytes,
-                removeMetadata: false,
+                removeMetadata: _removeMetadataAfterProcess,
+                deleteSource: _deleteFileAfterProcess,
                 outputPath: outputPath,
               ),
             );
       } else {
         final archiveFile = File(result.files.single.path!);
+
         if (!archiveFile.path.endsWith('.crypta')) {
           _showError('Just .crypta files.');
           return;
@@ -244,6 +276,7 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
               DecryptRequested(
                 archiveFile: archiveFile,
                 passwordBytes: passwordBytes,
+                deleteSource: _deleteFileAfterProcess,
                 outputDir: outputDir,
               ),
             );
@@ -263,14 +296,14 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        title: Text('CryptaShell v$_appVersion',
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, letterSpacing: 2.0)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-      ),
+      // appBar: AppBar(
+      //   title: Text('CryptaShell v$_appVersion',
+      //       style: const TextStyle(
+      //           fontWeight: FontWeight.bold, letterSpacing: 2.0)),
+      //   backgroundColor: Colors.transparent,
+      //   elevation: 0,
+      //   centerTitle: true,
+      // ),
       body: BlocConsumer<FileManagerBloc, FileManagerState>(
         listener: (context, state) async {
           if (state is FileManagerError) {
@@ -457,6 +490,30 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
                               ),
                             ),
                           ],
+                          const SizedBox(height: 5),
+
+                          // option toggle
+                          ToggleDeleteFile(
+                            value: _deleteFileAfterProcess,
+                            isEncryptMode: _isEncryptMode,
+                            onChanged: (bool value) {
+                              setState(() {
+                                _deleteFileAfterProcess = value;
+                              });
+                            },
+                          ),
+
+                          if (_isEncryptMode)
+                            ToggleRemoveMetaData(
+                              value: _removeMetadataAfterProcess,
+                              isEncryptMode: _isEncryptMode,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  _removeMetadataAfterProcess = value;
+                                });
+                              },
+                            ),
+
                           const SizedBox(height: 40),
 
                           // 6. Main action button
@@ -612,6 +669,89 @@ class SocialLinks extends StatelessWidget {
           onPressed: () => _launchUrl(linkedinUrl, context),
         ),
       ],
+    );
+  }
+}
+
+// Options: Destroy the original file. If decrypting, destroy the .crypta container
+class ToggleDeleteFile extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final bool isEncryptMode;
+
+  const ToggleDeleteFile({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    required this.isEncryptMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      title: Text(
+        isEncryptMode ? 'Destroy original file?' : 'Destroy .crypta container?',
+        style: const TextStyle(
+          color: Colors.grey,
+          fontWeight: FontWeight.w200,
+          fontSize: 15,
+        ),
+      ),
+      value: value,
+      onChanged: onChanged,
+      activeThumbColor:
+          isEncryptMode ? Colors.greenAccent : Colors.orangeAccent,
+      inactiveThumbColor: Colors.grey,
+      inactiveTrackColor: Colors.grey[800],
+      trackOutlineColor: WidgetStateProperty.resolveWith<Color?>(
+        (Set<WidgetState> states) {
+          if (states.contains(WidgetState.selected)) {
+            return isEncryptMode ? Colors.greenAccent : Colors.orangeAccent;
+          }
+          return Colors.transparent;
+        },
+      ),
+    );
+  }
+}
+
+class ToggleRemoveMetaData extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final bool isEncryptMode;
+
+  const ToggleRemoveMetaData({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    required this.isEncryptMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      title: const Text(
+        'Remove metadata?',
+        style: TextStyle(
+          color: Colors.grey,
+          fontWeight: FontWeight.w200,
+          fontSize: 15,
+        ),
+      ),
+      value: value,
+      onChanged: onChanged,
+      activeThumbColor:
+          isEncryptMode ? Colors.greenAccent : Colors.orangeAccent,
+      inactiveThumbColor: Colors.grey,
+      inactiveTrackColor: Colors.grey[800],
+      trackOutlineColor: WidgetStateProperty.resolveWith<Color?>(
+        (Set<WidgetState> states) {
+          if (states.contains(WidgetState.selected)) {
+            return isEncryptMode ? Colors.greenAccent : Colors.orangeAccent;
+          }
+          return Colors.transparent;
+        },
+      ),
     );
   }
 }

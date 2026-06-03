@@ -10,12 +10,11 @@ class DecryptFileUseCase {
 
   Future<Either<Failure, List<File>>> call(DecryptFileParams params) async {
     if (params.passwordBytes.isEmpty) {
-      return Left(ValidationFailure(
-          'La contraseña de descifrado no puede estar vacía.'));
+      return Left(
+          ValidationFailure('The decryption password cannot be empty.'));
     }
     if (!params.archiveFile.existsSync()) {
-      return Left(
-          FileSystemFailure('El búnker .crypta seleccionado no existe.'));
+      return Left(FileSystemFailure('The file does not exist.'));
     }
     return await repository.decryptArchive(
       archiveFile: params.archiveFile,

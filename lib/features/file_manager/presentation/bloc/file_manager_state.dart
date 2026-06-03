@@ -12,7 +12,7 @@ class FileManagerInitial extends FileManagerState {}
 class FileManagerLoading extends FileManagerState {}
 
 class FileManagerSuccess extends FileManagerState {
-  final List<File> files; // Soporta el conjunto de archivos operados con éxito
+  final List<File> files;
   final bool isEncrypted;
 
   const FileManagerSuccess({required this.files, required this.isEncrypted});
