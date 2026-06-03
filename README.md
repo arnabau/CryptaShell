@@ -2,7 +2,7 @@
 
 > A High-Security, Cross-Platform Cryptographic File Management System built with Dart/Flutter.
 
-CryptaShell is an offline-first desktop and mobile application designed to securely encrypt and decrypt files and complete directory trees. It acts as a digital bunker, prioritizing strict *Privacy-by-Design* principles, robust memory hygiene, and native-feeling user interfaces.
+CryptaShell is an offline-first desktop and mobile application designed to securely encrypt and decrypt files and complete directory trees. It acts as a digital bunker, prioritizing strict *Privacy-by-Design* principles, robust memory hygiene, and native-feeling user interfaces. (This is a project that is still under development).
 
 ---
 
