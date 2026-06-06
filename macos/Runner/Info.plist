@@ -29,29 +29,7 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 
-<key>NSServices</key>
-<array>
-    <dict>
-        <key>NSMessage</key>
-        <string>handleDecryptService</string>
-        <key>NSMenuItem</key>
-        <dict>
-            <key>default</key>
-            <string>Open with CryptaShell</string>
-        </dict>
-        <key>NSRequiredContext</key>
-        <dict>
-            <key>NSExtensionExtensions</key>
-            <array>
-                <string>crypta</string>
-            </array>
-        </dict>
-        <key>NSSendTypes</key>
-        <array>
-            <string>public.data</string>
-        </array>
-    </dict>
-	</array>
+
 
 	<key>CFBundleDocumentTypes</key>
     <array>
@@ -70,6 +48,10 @@
             <array>
                 <string>AppIcon</string>
             </array>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>crypta</string>
+            </array>
         </dict>
     </array>
 
@@ -79,7 +61,7 @@
             <key>UTTypeIdentifier</key>
             <string>com.arnaldobaumanis.cryptashell.crypta</string>
             <key>UTTypeDescription</key>
-            <string>CryptaShell Archive</string>
+            <string>CryptaShell Encrypted Archive</string>
             <key>UTTypeConformsTo</key>
             <array>
                 <string>public.data</string>

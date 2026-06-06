@@ -15,8 +15,11 @@ import 'package:cryptashell/features/file_manager/presentation/bloc/file_manager
 import 'package:window_manager/window_manager.dart';
 
 class FileManagerScreen extends StatefulWidget {
+  final String? initialFile;
+  final bool initialDecryptMode;
+
   const FileManagerScreen(
-      {super.key, required initialFile, required initialDecryptMode});
+      {super.key, this.initialFile, this.initialDecryptMode = false});
 
   @override
   State<FileManagerScreen> createState() => _FileManagerScreenState();
@@ -26,22 +29,74 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
 
+  String _appVersion = '';
   bool _isEncryptMode = true;
+  bool _isDragging = false;
   double _strengthValue = 0.0;
   Color _strengthColor = Colors.grey;
+  bool _obscurePassword = true; // <-- show/hide password
+  List<FileSystemEntity>?
+      _preloadedElements; // pre-load if OS send a file using "Open with CryptaShell" menu option
 
   // toggle's options
   bool _deleteFileAfterProcess = false;
   bool _removeMetadataAfterProcess = false;
 
-  bool _isDragging = false;
-
-  String _appVersion = '';
+  static const intentChannel = MethodChannel('com.cryptashell/intent');
 
   @override
   void initState() {
     super.initState();
-    _loadAppVersion();
+
+    intentChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onOpenFile') {
+        _handleIncomingOSFile(call.arguments);
+      }
+    });
+
+    _checkInitialOSFile();
+
+    // If OS send a file using menu option...
+    _isEncryptMode = !widget.initialDecryptMode;
+    if (widget.initialFile != null && widget.initialFile!.isNotEmpty) {
+      final path = widget.initialFile!;
+      _preloadedElements = [
+        FileSystemEntity.isDirectorySync(path) ? Directory(path) : File(path)
+      ];
+    }
+
+    _loadAppVersion(); // <-- app name and version
+  }
+
+  Future<void> _checkInitialOSFile() async {
+    try {
+      final String? path = await intentChannel.invokeMethod('dartIsReady');
+
+      if (path != null && path.isNotEmpty) {
+        _handleIncomingOSFile(path);
+      }
+    } catch (e) {
+      debugPrint("🛡️ Something went wrong: $e");
+    }
+  }
+
+  void _handleIncomingOSFile(String path) {
+    if (!mounted) return;
+
+    setState(() {
+      // pre load file
+      _preloadedElements = [
+        FileSystemEntity.isDirectorySync(path) ? Directory(path) : File(path)
+      ];
+
+      // if is a .crypta file --> Encrypt. If not --> Decrypt
+      _isEncryptMode = !path.endsWith('.crypta');
+
+      // clear UI
+      _passwordController.clear();
+      _confirmController.clear();
+      _checkPasswordStrength('');
+    });
   }
 
   Future<void> _loadAppVersion() async {
@@ -55,6 +110,23 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await windowManager.setTitle('CryptaShell - v$_appVersion');
+      await windowManager.setSize(const Size(450, 680));
+      await windowManager.setMinimumSize(const Size(450, 680));
+      await windowManager.setMaximumSize(const Size(600, 800));
+    });
+  }
+
+  // Clean memory buffer and UI after any process
+  void _resetToInitialState() {
+    if (!mounted) return;
+
+    setState(() {
+      _preloadedElements = null;
+      _passwordController.clear();
+      _confirmController.clear();
+      _strengthValue = 0.0;
+      _strengthColor = Colors.grey;
+      _isEncryptMode = true;
     });
   }
 
@@ -224,10 +296,44 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
     }
 
     final passwordBytes = Uint8List.fromList(utf8.encode(password));
+
+    // --- PRELOADED FILE (WITHOUT PICKER/DROP) ---
+    if (_preloadedElements != null && _preloadedElements!.isNotEmpty) {
+      if (!mounted) return;
+
+      if (_isEncryptMode) {
+        final parentDir = File(_preloadedElements!.first.path).parent.path;
+        final outputPath = _generatePath(parentDir, _preloadedElements!);
+
+        context.read<FileManagerBloc>().add(
+              EncryptRequested(
+                elements: _preloadedElements!,
+                passwordBytes: passwordBytes,
+                removeMetadata: _removeMetadataAfterProcess,
+                deleteSource: _deleteFileAfterProcess,
+                outputPath: outputPath,
+              ),
+            );
+      } else {
+        final archiveFile = File(_preloadedElements!.first.path);
+        final outputDir = archiveFile.parent.path;
+
+        context.read<FileManagerBloc>().add(
+              DecryptRequested(
+                archiveFile: archiveFile,
+                passwordBytes: passwordBytes,
+                deleteSource: _deleteFileAfterProcess,
+                outputDir: outputDir,
+              ),
+            );
+      }
+      return;
+    }
+
+    // --- IF THERE IS NO PRELOADED FILE, OPEN PICKER/DROP) ---
     FilePickerResult? result;
 
     if (_isEncryptMode) {
-      // Allow to select many files at once
       result = await FilePicker.platform.pickFiles(allowMultiple: true);
     } else {
       result = await FilePicker.platform.pickFiles(
@@ -296,14 +402,6 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
-      // appBar: AppBar(
-      //   title: Text('CryptaShell v$_appVersion',
-      //       style: const TextStyle(
-      //           fontWeight: FontWeight.bold, letterSpacing: 2.0)),
-      //   backgroundColor: Colors.transparent,
-      //   elevation: 0,
-      //   centerTitle: true,
-      // ),
       body: BlocConsumer<FileManagerBloc, FileManagerState>(
         listener: (context, state) async {
           if (state is FileManagerError) {
@@ -334,6 +432,8 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
                   duration: const Duration(seconds: 4),
                 ),
               );
+
+              _resetToInitialState();
             }
           }
         },
@@ -352,19 +452,19 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
                         ? Colors.greenAccent.withValues(alpha: 0.05)
                         : Colors.orangeAccent.withValues(alpha: 0.05))
                     : Colors.transparent,
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 40.0, vertical: 20.0),
+
+                // ---  ---
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 40.0, vertical: 20.0),
+                  child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                          maxWidth:
-                              500), // Prevent it from stretching too much on Mac
+                      constraints: const BoxConstraints(maxWidth: 500),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // 1. Toggle
+                          // ==========================================
+                          // HEADER (Toggle)
+                          // ==========================================
                           Center(
                             child: Container(
                               decoration: BoxDecoration(
@@ -380,8 +480,7 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
                                     onTap: () {
                                       setState(() {
                                         _isEncryptMode = true;
-                                        _passwordController
-                                            .clear(); // <-- clear textfield
+                                        _passwordController.clear();
                                         _confirmController.clear();
                                         _checkPasswordStrength('');
                                       });
@@ -393,8 +492,7 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
                                     onTap: () {
                                       setState(() {
                                         _isEncryptMode = false;
-                                        _passwordController
-                                            .clear(); // <-- clear textfield
+                                        _passwordController.clear();
                                         _confirmController.clear();
                                       });
                                     },
@@ -405,169 +503,220 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // 2. Dynamic icon
-                          Icon(
-                            _isEncryptMode
-                                ? Icons.lock_outline
-                                : Icons.lock_open_rounded,
-                            size: 100,
-                            color: state is FileManagerLoading
-                                ? Colors.blueAccent
-                                : (_isEncryptMode
-                                    ? Colors.greenAccent
-                                    : Colors.orangeAccent),
-                          ),
-                          Center(
-                            child: Text(
-                              "You can drop or select file(s) or folder(s)",
-                              style: TextStyle(color: Colors.grey[800]),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // 3. Password field
-                          TextField(
-                            controller: _passwordController,
-                            obscureText: true,
-                            style: const TextStyle(color: Colors.white),
-                            onChanged: _checkPasswordStrength,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              labelStyle: const TextStyle(color: Colors.grey),
-                              enabledBorder: OutlineInputBorder(
-                                  borderSide:
-                                      BorderSide(color: Colors.grey.shade800)),
-                              focusedBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                      color: _isEncryptMode
-                                          ? Colors.greenAccent
-                                          : Colors.orangeAccent)),
-                              prefixIcon:
-                                  const Icon(Icons.key, color: Colors.grey),
-                              // password generator button
-                              suffixIcon: _isEncryptMode
-                                  ? IconButton(
-                                      icon: const Icon(Icons.casino,
-                                          color: Colors.greenAccent),
-                                      tooltip: 'Generate a secure password',
-                                      onPressed: _generateSecurePassword,
-                                    )
-                                  : null,
-                            ),
-                          ),
-
-                          // 4. Password force meter
-                          if (_isEncryptMode) ...[
-                            const SizedBox(height: 8),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: LinearProgressIndicator(
-                                value: _strengthValue,
-                                backgroundColor: Colors.grey.shade900,
-                                color: _strengthColor,
-                                minHeight: 4,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-
-                            // 5. Confirm password
-                            TextField(
-                              controller: _confirmController,
-                              obscureText: true,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Confirm Password',
-                                labelStyle: const TextStyle(color: Colors.grey),
-                                enabledBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        color: Colors.grey.shade800)),
-                                focusedBorder: const OutlineInputBorder(
-                                    borderSide:
-                                        BorderSide(color: Colors.greenAccent)),
-                                prefixIcon: const Icon(
-                                    Icons.check_circle_outline,
-                                    color: Colors.grey),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 5),
-
-                          // option toggle
-                          ToggleDeleteFile(
-                            value: _deleteFileAfterProcess,
-                            isEncryptMode: _isEncryptMode,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _deleteFileAfterProcess = value;
-                              });
-                            },
-                          ),
-
-                          if (_isEncryptMode)
-                            ToggleRemoveMetaData(
-                              value: _removeMetadataAfterProcess,
-                              isEncryptMode: _isEncryptMode,
-                              onChanged: (bool value) {
-                                setState(() {
-                                  _removeMetadataAfterProcess = value;
-                                });
-                              },
-                            ),
-
-                          const SizedBox(height: 40),
-
-                          // 6. Main action button
-                          SizedBox(
-                            height: 60,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isEncryptMode
-                                    ? Colors.greenAccent.withValues(alpha: 0.1)
-                                    : Colors.orangeAccent
-                                        .withValues(alpha: 0.1),
-                                foregroundColor: _isEncryptMode
-                                    ? Colors.greenAccent
-                                    : Colors.orangeAccent,
-                                side: BorderSide(
-                                    color: _isEncryptMode
-                                        ? Colors.greenAccent
-                                        : Colors.orangeAccent),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                              ),
-                              onPressed: state is FileManagerLoading
-                                  ? null
-                                  : _processFile,
-                              icon: state is FileManagerLoading
-                                  ? SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: _isEncryptMode
+                          // ==========================================
+                          // MAIN CONTENT
+                          // ==========================================
+                          Expanded(
+                            child: Center(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // dynamic icon
+                                    Icon(
+                                      _isEncryptMode
+                                          ? Icons.lock_outline
+                                          : Icons.lock_open_rounded,
+                                      size: 100,
+                                      color: state is FileManagerLoading
+                                          ? Colors.blueAccent
+                                          : (_isEncryptMode
                                               ? Colors.greenAccent
-                                              : Colors.orangeAccent))
-                                  : Icon(_isEncryptMode
-                                      ? Icons.shield
-                                      : Icons.lock_open),
-                              label: Text(
-                                state is FileManagerLoading
-                                    ? 'WORKING...'
-                                    : (_isEncryptMode
-                                        ? 'SELECT AND ENCRYPT'
-                                        : 'SELECT .CRYPTA FILE'),
-                                style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0),
+                                              : Colors.orangeAccent),
+                                    ),
+                                    Center(
+                                      child: Text(
+                                        "You can drop or select file(s) or folder(s)",
+                                        style:
+                                            TextStyle(color: Colors.grey[800]),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Main password field
+                                    TextField(
+                                      controller: _passwordController,
+                                      obscureText: _obscurePassword,
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                      onChanged: _checkPasswordStrength,
+                                      decoration: InputDecoration(
+                                        labelText: 'Password',
+                                        labelStyle:
+                                            const TextStyle(color: Colors.grey),
+                                        enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.grey.shade800)),
+                                        focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: _isEncryptMode
+                                                    ? Colors.greenAccent
+                                                    : Colors.orangeAccent)),
+                                        prefixIcon: const Icon(Icons.key,
+                                            color: Colors.grey),
+                                        suffixIcon: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (_isEncryptMode)
+                                              IconButton(
+                                                icon: const Icon(Icons.casino,
+                                                    color: Colors.greenAccent),
+                                                tooltip:
+                                                    'Generate a secure password',
+                                                onPressed:
+                                                    _generateSecurePassword,
+                                              ),
+                                            IconButton(
+                                              icon: Icon(
+                                                _obscurePassword
+                                                    ? Icons.visibility
+                                                    : Icons.visibility_off,
+                                                color: Colors.grey,
+                                              ),
+                                              onPressed: () => setState(() =>
+                                                  _obscurePassword =
+                                                      !_obscurePassword),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                    if (_isEncryptMode) ...[
+                                      const SizedBox(height: 8),
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: LinearProgressIndicator(
+                                          value: _strengthValue,
+                                          backgroundColor: Colors.grey.shade900,
+                                          color: _strengthColor,
+                                          minHeight: 4,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+
+                                      // Confirm pasword
+                                      TextField(
+                                        controller: _confirmController,
+                                        obscureText: true,
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                        decoration: InputDecoration(
+                                          labelText: 'Confirm Password',
+                                          labelStyle: const TextStyle(
+                                              color: Colors.grey),
+                                          enabledBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: Colors.grey.shade800)),
+                                          focusedBorder:
+                                              const OutlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                      color:
+                                                          Colors.greenAccent)),
+                                          prefixIcon: const Icon(
+                                              Icons.check_circle_outline,
+                                              color: Colors.grey),
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 5),
+
+                                    // Toggles
+                                    ToggleDeleteFile(
+                                      value: _deleteFileAfterProcess,
+                                      isEncryptMode: _isEncryptMode,
+                                      onChanged: (bool value) => setState(() =>
+                                          _deleteFileAfterProcess = value),
+                                    ),
+
+                                    if (_isEncryptMode)
+                                      ToggleRemoveMetaData(
+                                        value: _removeMetadataAfterProcess,
+                                        isEncryptMode: _isEncryptMode,
+                                        onChanged: (bool value) => setState(
+                                            () => _removeMetadataAfterProcess =
+                                                value),
+                                      ),
+
+                                    const SizedBox(height: 40),
+
+                                    // Main button
+                                    SizedBox(
+                                      height: 60,
+                                      child: ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: _isEncryptMode
+                                              ? Colors.greenAccent
+                                                  .withValues(alpha: 0.1)
+                                              : Colors.orangeAccent
+                                                  .withValues(alpha: 0.1),
+                                          foregroundColor: _isEncryptMode
+                                              ? Colors.greenAccent
+                                              : Colors.orangeAccent,
+                                          side: BorderSide(
+                                              color: _isEncryptMode
+                                                  ? Colors.greenAccent
+                                                  : Colors.orangeAccent),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12)),
+                                        ),
+                                        onPressed: state is FileManagerLoading
+                                            ? null
+                                            : _processFile,
+                                        icon: state is FileManagerLoading
+                                            ? SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: _isEncryptMode
+                                                            ? Colors.greenAccent
+                                                            : Colors
+                                                                .orangeAccent))
+                                            : Icon(_isEncryptMode
+                                                ? Icons.shield
+                                                : Icons.lock_open),
+                                        label: Text(
+                                          state is FileManagerLoading
+                                              ? 'WORKING...'
+                                              : (_preloadedElements != null
+                                                  ? (_isEncryptMode
+                                                      ? 'ENCRYPT FILE'
+                                                      : 'DECRYPT FILE')
+                                                  : (_isEncryptMode
+                                                      ? 'SELECT AND ENCRYPT'
+                                                      : 'SELECT .CRYPTA FILE')),
+                                          style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1.0),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
-                          const SocialLinks(
-                            githubUrl: 'https://github.com/arnabau',
-                            linkedinUrl:
-                                'https://linkedin.com/in/arnaldo-baumanis',
+
+                          // ==========================================
+                          // FOOTER
+                          // ==========================================
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const SocialLinks(
+                                githubUrl: 'https://github.com/arnabau',
+                                linkedinUrl:
+                                    'https://linkedin.com/in/arnaldo-baumanis',
+                              ),
+                              quitButton(),
+                            ],
                           ),
                         ],
                       ),
@@ -575,6 +724,22 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
                   ),
                 ),
               ));
+        },
+      ),
+    );
+  }
+
+  Widget quitButton() {
+    return Tooltip(
+      message: 'Close Application',
+      child: IconButton(
+        icon: const FaIcon(FontAwesomeIcons.x),
+        color: Colors.white70,
+        iconSize: 20.0,
+        splashRadius: 24.0,
+        hoverColor: Colors.greenAccent.withValues(alpha: 0.1),
+        onPressed: () async {
+          await windowManager.close();
         },
       ),
     );
@@ -651,7 +816,7 @@ class SocialLinks extends StatelessWidget {
         IconButton(
           icon: const FaIcon(FontAwesomeIcons.github),
           color: Colors.white70,
-          iconSize: 28.0,
+          iconSize: 20.0,
           splashRadius: 24.0,
           hoverColor: Colors.greenAccent.withValues(alpha: 0.1),
           onPressed: () => _launchUrl(githubUrl, context),
@@ -663,7 +828,7 @@ class SocialLinks extends StatelessWidget {
         IconButton(
           icon: const FaIcon(FontAwesomeIcons.linkedin),
           color: Colors.white70,
-          iconSize: 28.0,
+          iconSize: 20.0,
           splashRadius: 24.0,
           hoverColor: Colors.blueAccent.withValues(alpha: 0.1),
           onPressed: () => _launchUrl(linkedinUrl, context),

@@ -8,7 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 // Imported dependency injection
 import 'package:cryptashell/core/di/locator.dart';
 
-// Imported BLoC ans screen
+// Imported BLoC and screen
 import 'package:cryptashell/features/file_manager/presentation/bloc/file_manager_bloc.dart';
 import 'package:cryptashell/features/file_manager/presentation/screens/file_manager_screen.dart';
 
@@ -23,6 +23,7 @@ void main(List<String> args) async {
     title: 'CryptaShell',
     minimumSize: Size(450, 660),
     maximumSize: Size(600, 800),
+    size: Size(450, 660),
   );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
@@ -43,8 +44,8 @@ void main(List<String> args) async {
     }
   }
 
-  runApp(CryptaShellApp(
-      initialFile: fileFromOS, initialDecryptMode: startInDecryptMode));
+  //runApp(CryptaShellApp(initialFile: fileFromOS, initialDecryptMode: startInDecryptMode));
+  runApp(CryptaShellApp(initialDecryptMode: startInDecryptMode));
 }
 
 class CryptaShellApp extends StatelessWidget {
@@ -74,7 +75,7 @@ class CryptaShellApp extends StatelessWidget {
         create: (context) => sl<FileManagerBloc>(),
         child: FileManagerScreen(
           // 3. Display the variables on the screen
-          initialFile: initialFile,
+          //initialFile: initialFile?.path,
           initialDecryptMode: initialDecryptMode,
         ),
       ),
