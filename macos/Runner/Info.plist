@@ -53,6 +53,36 @@
                 <string>crypta</string>
             </array>
         </dict>
+
+        <!-- 2. SOPORTE UNIVERSAL PARA ARCHIVOS CONOCIDOS Y GENERALES ("Abrir con...") -->
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>All Files and Folders</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <!-- Raíces generales -->
+                <string>public.item</string>
+                <string>public.data</string>
+                <string>public.content</string>
+                <string>public.folder</string>
+                <!-- Ramas concretas para evitar el filtrado de LaunchServices -->
+                <string>public.image</string>
+                <string>public.text</string>
+                <string>public.audiovisual-content</string>
+                <string>public.composite-content</string>
+                <string>public.archive</string>
+                <string>public.source-code</string>
+                <string>com.adobe.pdf</string>
+            </array>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>*</string>
+            </array>
+        </dict>
     </array>
 
     <key>UTExportedTypeDeclarations</key>

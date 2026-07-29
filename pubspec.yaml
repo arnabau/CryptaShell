@@ -1,7 +1,7 @@
 name: cryptashell
 description: A High-Security Cryptographic File Management System.
 publish_to: "none" # Golden rule for security apps: avoid accidental posting to pub.dev
-version: 1.0.12+2
+version: 1.0.17+3
 
 environment:
   sdk: ">=3.3.0 <4.0.0" # Force the use of modern Dart (Pattern matching, Records)
