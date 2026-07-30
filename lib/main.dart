@@ -18,17 +18,19 @@ void main(List<String> args) async {
   // Make sure native macOS channels are ready
   WidgetsFlutterBinding.ensureInitialized();
 
-  await windowManager.ensureInitialized();
-  WindowOptions windowOptions = const WindowOptions(
-    title: 'CryptaShell',
-    minimumSize: Size(450, 660),
-    maximumSize: Size(600, 800),
-    size: Size(450, 660),
-  );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
+  if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+    await windowManager.ensureInitialized();
+    WindowOptions windowOptions = const WindowOptions(
+      title: 'CryptaShell',
+      minimumSize: Size(450, 660),
+      maximumSize: Size(600, 800),
+      size: Size(450, 660),
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
 
   // Initialize dependency bunker
   await initLocator();

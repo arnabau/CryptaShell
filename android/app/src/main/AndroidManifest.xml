@@ -1,36 +1,45 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <application
-        android:label="crypta_shell"
+        android:label="CryptaShell"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
-            <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
+
+            <!-- 1. BLOQUE LAUNCHER: Hace que aparezca el icono y se pueda ejecutar -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <!-- 2. BLOQUE ARCHIVOS .CRYPTA: Le dice a Android cómo abrir nuestra extensión -->
+            <intent-filter android:label="Open with CryptaShell">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- Soporta rutas modernas (content://) y antiguas (file://) -->
                 <data android:scheme="file" />
                 <data android:scheme="content" />
+                <!-- Los gestores de archivo en Android envían extensiones raras bajo cualquier MIME -->
+                <data android:mimeType="*/*" />
                 <data android:host="*" />
+
+                <!-- Patrón de expresión regular de Android para capturar .crypta -->
                 <data android:pathPattern=".*\\.crypta" />
+                <data android:pathPattern=".*\\..*\\.crypta" />
+                <data android:pathPattern=".*\\..*\\..*\\.crypta" />
             </intent-filter>
+
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

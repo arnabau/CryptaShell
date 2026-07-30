@@ -108,12 +108,14 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
       _appVersion = packageInfo.version;
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await windowManager.setTitle('CryptaShell - v$_appVersion');
-      await windowManager.setSize(const Size(450, 680));
-      await windowManager.setMinimumSize(const Size(450, 680));
-      await windowManager.setMaximumSize(const Size(600, 800));
-    });
+    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await windowManager.setTitle('CryptaShell - v$_appVersion');
+        await windowManager.setSize(const Size(450, 680));
+        await windowManager.setMinimumSize(const Size(450, 680));
+        await windowManager.setMaximumSize(const Size(600, 800));
+      });
+    }
   }
 
   // Clean memory buffer and UI after any process
@@ -336,9 +338,12 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
     if (_isEncryptMode) {
       result = await FilePicker.platform.pickFiles(allowMultiple: true);
     } else {
+      // En móviles (Android e iOS) usamos FileType.any para evitar que el selector bloquee la extensión .crypta
+      final isMobile = Platform.isAndroid || Platform.isIOS;
+
       result = await FilePicker.platform.pickFiles(
-        type: Platform.isIOS ? FileType.any : FileType.custom,
-        allowedExtensions: Platform.isIOS ? null : ['crypta'],
+        type: isMobile ? FileType.any : FileType.custom,
+        allowedExtensions: isMobile ? null : ['crypta'],
         allowMultiple: false,
       );
     }
@@ -415,14 +420,45 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
             });
 
             // 2. iOS / Android
-            if (Platform.isIOS || Platform.isAndroid) {
-              // Closed the keyboard
+            if (Platform.isAndroid) {
               FocusScope.of(context).unfocus();
 
-              // Open iOS/Android native window to save
+              // En Android: Permitir elegir la carpeta de destino directamente
+              String? selectedDirectory =
+                  await FilePicker.platform.getDirectoryPath(
+                dialogTitle: 'Select folder to save file',
+              );
+
+              if (selectedDirectory != null) {
+                for (var file in state.files) {
+                  final fileName = file.path.split(Platform.pathSeparator).last;
+                  final newPath = '$selectedDirectory/$fileName';
+                  await File(file.path).copy(newPath);
+                }
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.isEncrypted
+                          ? '🔒 Encrypted file saved successfully'
+                          : '🔓 File extracted successfully'),
+                      backgroundColor: Colors.greenAccent.shade700,
+                    ),
+                  );
+                }
+                _resetToInitialState();
+              }
+              // Si el usuario cancela la selección de carpeta, no hacemos nada ni reseteamos el estado
+            } else if (Platform.isIOS) {
+              FocusScope.of(context).unfocus();
+
+              // En iOS: Usar únicamente Share.shareXFiles (permite guardar en "Archivos" o compartir)
               final xFiles = state.files.map((f) => XFile(f.path)).toList();
               await Share.shareXFiles(xFiles);
+
+              _resetToInitialState();
             } else {
+              // Escritorio (macOS / Windows / Linux)
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.isEncrypted
@@ -730,6 +766,10 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
   }
 
   Widget quitButton() {
+    if (Platform.isAndroid || Platform.isIOS) {
+      return const SizedBox.shrink();
+    }
+
     return Tooltip(
       message: 'Close Application',
       child: IconButton(
@@ -739,7 +779,15 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
         splashRadius: 24.0,
         hoverColor: Colors.greenAccent.withValues(alpha: 0.1),
         onPressed: () async {
-          await windowManager.close();
+          if (Platform.isAndroid || Platform.isIOS) {
+            // close the app on mobiles
+            //await SystemNavigator.pop();
+          } else if (Platform.isMacOS ||
+              Platform.isWindows ||
+              Platform.isLinux) {
+            // Close the window on desktop
+            await windowManager.close();
+          }
         },
       ),
     );

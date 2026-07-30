@@ -22,3 +22,23 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+subprojects {
+    fun forceCompileSdk() {
+        if (extensions.findByName("android") != null) {
+            extensions.configure<com.android.build.gradle.BaseExtension>("android") {
+                compileSdkVersion(36)
+            }
+        }
+    }
+
+    // Si el proyecto ya se evaluó, lo aplicamos directo sin romper el ciclo de vida.
+    // Si no, esperamos al final de la evaluación para tener la última palabra.
+    if (state.executed) {
+        forceCompileSdk()
+    } else {
+        afterEvaluate {
+            forceCompileSdk()
+        }
+    }
+}
