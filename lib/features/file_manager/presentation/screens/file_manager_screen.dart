@@ -338,7 +338,7 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
     if (_isEncryptMode) {
       result = await FilePicker.platform.pickFiles(allowMultiple: true);
     } else {
-      // En móviles (Android e iOS) usamos FileType.any para evitar que el selector bloquee la extensión .crypta
+      // On mobile devices (Android and iOS) use FileType.any to prevent the selector from blocking the .crypta extension
       final isMobile = Platform.isAndroid || Platform.isIOS;
 
       result = await FilePicker.platform.pickFiles(
@@ -423,7 +423,7 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
             if (Platform.isAndroid) {
               FocusScope.of(context).unfocus();
 
-              // En Android: Permitir elegir la carpeta de destino directamente
+              // On Android: Allow choosing the destination folder directly
               String? selectedDirectory =
                   await FilePicker.platform.getDirectoryPath(
                 dialogTitle: 'Select folder to save file',
@@ -448,17 +448,17 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
                 }
                 _resetToInitialState();
               }
-              // Si el usuario cancela la selección de carpeta, no hacemos nada ni reseteamos el estado
+              // If the user cancels the folder selection, do nothing and do not reset the state
             } else if (Platform.isIOS) {
               FocusScope.of(context).unfocus();
 
-              // En iOS: Usar únicamente Share.shareXFiles (permite guardar en "Archivos" o compartir)
+              // On iOS: Only use Share.shareXFiles (allows saving to "Files" or sharing)
               final xFiles = state.files.map((f) => XFile(f.path)).toList();
               await Share.shareXFiles(xFiles);
 
               _resetToInitialState();
             } else {
-              // Escritorio (macOS / Windows / Linux)
+              // Desktop (macOS / Windows / Linux)
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.isEncrypted

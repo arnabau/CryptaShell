@@ -54,7 +54,7 @@
             </array>
         </dict>
 
-        <!-- 2. SOPORTE UNIVERSAL PARA ARCHIVOS CONOCIDOS Y GENERALES ("Abrir con...") -->
+        <!-- 2. UNIVERSAL SUPPORT FOR KNOWN AND GENERAL FILES ("Open with...") -->
         <dict>
             <key>CFBundleTypeName</key>
             <string>All Files and Folders</string>
@@ -64,12 +64,12 @@
             <string>Alternate</string>
             <key>LSItemContentTypes</key>
             <array>
-                <!-- Raíces generales -->
+                <!-- General roots -->
                 <string>public.item</string>
                 <string>public.data</string>
                 <string>public.content</string>
                 <string>public.folder</string>
-                <!-- Ramas concretas para evitar el filtrado de LaunchServices -->
+                <!-- Specific branches to avoid LaunchServices filtering -->
                 <string>public.image</string>
                 <string>public.text</string>
                 <string>public.audiovisual-content</string>

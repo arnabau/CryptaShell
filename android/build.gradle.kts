@@ -32,8 +32,6 @@ subprojects {
         }
     }
 
-    // Si el proyecto ya se evaluó, lo aplicamos directo sin romper el ciclo de vida.
-    // Si no, esperamos al final de la evaluación para tener la última palabra.
     if (state.executed) {
         forceCompileSdk()
     } else {

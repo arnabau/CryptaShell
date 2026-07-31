@@ -15,26 +15,26 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
 
-            <!-- 1. BLOQUE LAUNCHER: Hace que aparezca el icono y se pueda ejecutar -->
+            <!-- 1. LAUNCHER BLOCK: Makes the icon appear and allows it to be executed -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- 2. BLOQUE ARCHIVOS .CRYPTA: Le dice a Android cómo abrir nuestra extensión -->
+            <!-- 2. BLOCK .CRYPTA FILES: Tells Android how to open our extension -->
             <intent-filter android:label="Open with CryptaShell">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <!-- Soporta rutas modernas (content://) y antiguas (file://) -->
+                <!-- It supports modern (content://) and old (file://) paths -->
                 <data android:scheme="file" />
                 <data android:scheme="content" />
-                <!-- Los gestores de archivo en Android envían extensiones raras bajo cualquier MIME -->
+                <!-- File managers on Android send unusual file extensions under any MIME type. -->
                 <data android:mimeType="*/*" />
                 <data android:host="*" />
 
-                <!-- Patrón de expresión regular de Android para capturar .crypta -->
+                <!-- Android regular expression pattern to capture .crypta -->
                 <data android:pathPattern=".*\\.crypta" />
                 <data android:pathPattern=".*\\..*\\.crypta" />
                 <data android:pathPattern=".*\\..*\\..*\\.crypta" />

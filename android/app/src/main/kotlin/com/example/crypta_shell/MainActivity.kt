@@ -27,7 +27,7 @@ class MainActivity: FlutterActivity() {
         if (Intent.ACTION_VIEW == intent.action) {
             val uri: Uri? = intent.data
             if (uri != null) {
-                // Convertimos el content:// URI en una ruta de archivo real accesible por Dart
+                // Converted the content:// URI into a real file path accessible by Dart
                 initialFilePath = copyUriToCache(uri)
             }
         }
@@ -48,7 +48,7 @@ class MainActivity: FlutterActivity() {
     private fun copyUriToCache(uri: Uri): String? {
         return try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
-            // Obtenemos o forzamos la extensión .crypta para que Flutter sepa qué modo activar
+            // Get or force the .crypta extension so that Flutter knows which mode to activate
             val tempFile = File(cacheDir, "incoming_file.crypta")
             val outputStream = FileOutputStream(tempFile)
             inputStream.copyTo(outputStream)
